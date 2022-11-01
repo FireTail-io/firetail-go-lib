@@ -27,3 +27,25 @@ You should get the following response:
 {"message":"Go Serverless v1.0! Your function executed successfully!"}
 ```
 
+
+
+## Cloud Deployment
+
+To deploy this project to AWS, a makefile is included. You'll first need to build the binaries:
+
+```bash
+make build
+```
+
+You can then deploy them to AWS using the serverless framework and clean your local environment of any temporary files:
+
+```bash
+make deploy
+make clean
+```
+
+You can also remove them from AWS when you're done:
+
+```bash
+make remove
+```
