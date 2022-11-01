@@ -4,5 +4,6 @@ use (
 	.
 	./examples/minimal-chi
 	./examples/minimal-http
+	./examples/minimal-lambda
 	./examples/petstore-chi
 )
