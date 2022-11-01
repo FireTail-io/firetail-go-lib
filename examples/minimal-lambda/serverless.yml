@@ -8,13 +8,13 @@ provider:
 
 functions:
   hello:
-    handler: bin/hello
+    handler: hello/main.go
     events:
       - httpApi:
           path: /hello
           method: get
   world:
-    handler: bin/world
+    handler: world/main.go
     events:
       - httpApi:
           path: /world
@@ -25,3 +25,6 @@ package:
    - ./**
  include:
    - ./bin/**
+
+plugins:
+  - serverless-offline
