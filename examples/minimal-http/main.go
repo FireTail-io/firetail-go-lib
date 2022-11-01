@@ -6,6 +6,7 @@ import (
 	"time"
 
 	firetail "github.com/FireTail-io/firetail-go-lib/middlewares/http"
+	firetailoptions "github.com/FireTail-io/firetail-go-lib/options"
 )
 
 func health(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Get a firetail middleware
-	firetailMiddleware, err := firetail.GetMiddleware(&firetail.Options{
+	firetailMiddleware, err := firetail.GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "app-spec.yaml",
 		LogApiKey:       os.Getenv("FIRETAIL_LOG_API_KEY"),
 	})

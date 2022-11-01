@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	firetailerrors "github.com/FireTail-io/firetail-go-lib/errors"
 	"github.com/FireTail-io/firetail-go-lib/logging"
+	firetailoptions "github.com/FireTail-io/firetail-go-lib/options"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
@@ -18,18 +20,18 @@ import (
 )
 
 // GetMiddleware creates & returns a firetail middleware. Errs if the openapi spec can't be found, validated, or loaded into a gorillamux router.
-func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, error) {
-	options.setDefaults() // Fill in any defaults where apropriate
+func GetMiddleware(options *firetailoptions.Options) (func(next http.Handler) http.Handler, error) {
+	options.SetDefaults() // Fill in any defaults where apropriate
 
 	// Load in our appspec, validate it & create a router from it.
 	loader := &openapi3.Loader{Context: context.Background(), IsExternalRefsAllowed: true}
 	doc, err := loader.LoadFromFile(options.OpenapiSpecPath)
 	if err != nil {
-		return nil, ErrorInvalidConfiguration{err}
+		return nil, firetailerrors.ErrorInvalidConfiguration{Err: err}
 	}
 	err = doc.Validate(context.Background())
 	if err != nil {
-		return nil, ErrorAppspecInvalid{err}
+		return nil, firetailerrors.ErrorAppspecInvalid{Err: err}
 	}
 	router, err := gorillamux.NewRouter(doc)
 	if err != nil {
@@ -97,7 +99,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 			// Read in the request body so we can log it & replace r.Body with a new copy for the next http.Handler to read from
 			requestBody, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				options.ErrCallback(ErrorAtRequestUnspecified{err}, localResponseWriter, r)
+				options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
 				return
 			}
 			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
@@ -108,13 +110,13 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 			// Check there's a corresponding route for this request
 			route, pathParams, err := router.FindRoute(r)
 			if err == routers.ErrMethodNotAllowed {
-				options.ErrCallback(ErrorUnsupportedMethod{r.URL.Path, r.Method}, localResponseWriter, r)
+				options.ErrCallback(firetailerrors.ErrorUnsupportedMethod{RequestedPath: r.URL.Path, RequestedMethod: r.Method}, localResponseWriter, r)
 				return
 			} else if err == routers.ErrPathNotFound {
-				options.ErrCallback(ErrorRouteNotFound{r.URL.Path}, localResponseWriter, r)
+				options.ErrCallback(firetailerrors.ErrorRouteNotFound{RequestedPath: r.URL.Path}, localResponseWriter, r)
 				return
 			} else if err != nil {
-				options.ErrCallback(ErrorAtRequestUnspecified{err}, localResponseWriter, r)
+				options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
 				return
 			}
 
@@ -131,7 +133,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 						AuthenticationFunc: func(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
 							authCallback, hasAuthCallback := options.AuthCallbacks[ai.SecuritySchemeName]
 							if !hasAuthCallback {
-								return ErrorAuthSchemeNotImplemented{ai.SecuritySchemeName}
+								return firetailerrors.ErrorAuthSchemeNotImplemented{MissingScheme: ai.SecuritySchemeName}
 							}
 							return authCallback(ctx, ai)
 						},
@@ -145,35 +147,35 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 						// See the following open issue on the kin-openapi repo: https://github.com/getkin/kin-openapi/issues/477
 						// TODO: Open source contribution to kin-openapi?
 						if strings.Contains(err.Reason, "header Content-Type has unexpected value") {
-							options.ErrCallback(ErrorRequestContentTypeInvalid{r.Header.Get("Content-Type"), route.Path}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorRequestContentTypeInvalid{RequestedContentType: r.Header.Get("Content-Type"), RequestedRoute: route.Path}, localResponseWriter, r)
 							return
 						}
 						if strings.Contains(err.Error(), "body has an error") {
-							options.ErrCallback(ErrorRequestBodyInvalid{err}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorRequestBodyInvalid{Err: err}, localResponseWriter, r)
 							return
 						}
 						if strings.Contains(err.Error(), "header has an error") {
-							options.ErrCallback(ErrorRequestHeadersInvalid{err}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorRequestHeadersInvalid{Err: err}, localResponseWriter, r)
 							return
 						}
 						if strings.Contains(err.Error(), "query has an error") {
-							options.ErrCallback(ErrorRequestQueryParamsInvalid{err}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorRequestQueryParamsInvalid{Err: err}, localResponseWriter, r)
 							return
 						}
 						if strings.Contains(err.Error(), "path has an error") {
-							options.ErrCallback(ErrorRequestPathParamsInvalid{err}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorRequestPathParamsInvalid{Err: err}, localResponseWriter, r)
 							return
 						}
 					}
 
 					// If the validation fails due to a security requirement, we pass a SecurityRequirementsError to the ErrCallback
 					if err, isSecurityErr := err.(*openapi3filter.SecurityRequirementsError); isSecurityErr {
-						options.ErrCallback(ErrorAuthNoMatchingScheme{err}, localResponseWriter, r)
+						options.ErrCallback(firetailerrors.ErrorAuthNoMatchingScheme{Err: err}, localResponseWriter, r)
 						return
 					}
 
 					// Else, we just use a non-specific ValidationError error
-					options.ErrCallback(ErrorAtRequestUnspecified{err}, localResponseWriter, r)
+					options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
 					return
 				}
 			}
@@ -200,7 +202,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 				}
 				responseBytes, err := ioutil.ReadAll(chainResponseWriter.Result().Body)
 				if err != nil {
-					options.ErrCallback(ErrorResponseBodyInvalid{err}, localResponseWriter, r)
+					options.ErrCallback(firetailerrors.ErrorResponseBodyInvalid{Err: err}, localResponseWriter, r)
 					return
 				}
 				responseValidationInput.SetBodyBytes(responseBytes)
@@ -208,14 +210,14 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 				if err != nil {
 					if responseError, isResponseError := err.(*openapi3filter.ResponseError); isResponseError {
 						if responseError.Reason == "response body doesn't match the schema" {
-							options.ErrCallback(ErrorResponseBodyInvalid{responseError}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorResponseBodyInvalid{Err: responseError}, localResponseWriter, r)
 							return
 						} else if responseError.Reason == "status is not supported" {
-							options.ErrCallback(ErrorResponseStatusCodeInvalid{responseError.Input.Status}, localResponseWriter, r)
+							options.ErrCallback(firetailerrors.ErrorResponseStatusCodeInvalid{RespondedStatusCode: responseError.Input.Status}, localResponseWriter, r)
 							return
 						}
 					}
-					options.ErrCallback(ErrorAtRequestUnspecified{err}, localResponseWriter, r)
+					options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
 					return
 				}
 			}

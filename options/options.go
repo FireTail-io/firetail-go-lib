@@ -1,9 +1,9 @@
-package firetail
+package firetailoptions
 
 import (
-	"encoding/json"
 	"net/http"
 
+	firetailerrors "github.com/FireTail-io/firetail-go-lib/errors"
 	"github.com/FireTail-io/firetail-go-lib/logging"
 	"github.com/getkin/kin-openapi/openapi3filter"
 )
@@ -29,7 +29,7 @@ type Options struct {
 	// ErrCallback is an optional callback func which is given an error and a ResponseWriter to which an apropriate response can be written
 	// for the error. This allows you customise the responses given, when for example a request or response fails to validate against the
 	// openapi spec, to be consistent with the format in which the rest of your application returns error responses
-	ErrCallback func(ErrorAtRequest, http.ResponseWriter, *http.Request)
+	ErrCallback func(firetailerrors.ErrorAtRequest, http.ResponseWriter, *http.Request)
 
 	// AuthCallbacks is a map of strings, which should match the names of your appspec's securitySchemes, to callback funcs which must be
 	// defined if you wish to use security schemas in your openapi specification. See the openapi3filter package's reference for further
@@ -50,34 +50,4 @@ type Options struct {
 	// information, or anonymise identifiable information using a custom implementation of this callback for your application. A default
 	// implementation is provided in the firetail logging package.
 	LogEntrySanitiser func(logging.LogEntry) logging.LogEntry
-}
-
-func (o *Options) setDefaults() {
-	if o.LogApiUrl == "" {
-		o.LogApiUrl = "https://api.logging.eu-west-1.sandbox.firetail.app/logs/bulk"
-	}
-
-	if o.ErrCallback == nil {
-		o.ErrCallback = func(errAtRequest ErrorAtRequest, w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Content-Type", "application/json")
-			type ErrorResponse struct {
-				Code    int    `json:"code"`
-				Message string `json:"message"`
-			}
-			responseBody, err := json.Marshal(ErrorResponse{
-				Code:    errAtRequest.StatusCode(),
-				Message: errAtRequest.Error(),
-			})
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("{\"code\":500,\"message\":\"internal server error\"}"))
-			}
-			w.WriteHeader(errAtRequest.StatusCode())
-			w.Write([]byte(responseBody))
-		}
-	}
-
-	if o.LogEntrySanitiser == nil {
-		o.LogEntrySanitiser = logging.DefaultSanitiser()
-	}
 }

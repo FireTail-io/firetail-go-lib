@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	firetailerrors "github.com/FireTail-io/firetail-go-lib/errors"
+	firetailoptions "github.com/FireTail-io/firetail-go-lib/options"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/sbabiv/xml2map"
@@ -52,7 +54,7 @@ var authCallbacks = map[string]openapi3filter.AuthenticationFunc{
 }
 
 func TestValidRequestAndResponse(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -81,23 +83,23 @@ func TestValidRequestAndResponse(t *testing.T) {
 }
 
 func TestInvalidSpecPath(t *testing.T) {
-	_, err := GetMiddleware(&Options{
+	_, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec-not-here.yaml",
 	})
-	require.IsType(t, ErrorInvalidConfiguration{}, err)
+	require.IsType(t, firetailerrors.ErrorInvalidConfiguration{}, err)
 	require.Equal(t, "firetail - invalid configuration: open ./test-spec-not-here.yaml: no such file or directory", err.Error())
 }
 
 func TestInvalidSpec(t *testing.T) {
-	_, err := GetMiddleware(&Options{
+	_, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec-invalid.yaml",
 	})
-	require.IsType(t, ErrorAppspecInvalid{}, err)
+	require.IsType(t, firetailerrors.ErrorAppspecInvalid{}, err)
 	require.Equal(t, "firetail - invalid appspec: invalid paths: a short description of the response is required", err.Error())
 }
 
 func TestRequestToInvalidRoute(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 	})
 	require.Nil(t, err)
@@ -120,7 +122,7 @@ func TestRequestToInvalidRoute(t *testing.T) {
 }
 
 func TestRequestWithDisallowedMethod(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 	})
 	require.Nil(t, err)
@@ -143,7 +145,7 @@ func TestRequestWithDisallowedMethod(t *testing.T) {
 }
 
 func TestRequestWithInvalidHeader(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -177,7 +179,7 @@ func TestRequestWithInvalidHeader(t *testing.T) {
 }
 
 func TestRequestWithInvalidQueryParam(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -210,7 +212,7 @@ func TestRequestWithInvalidQueryParam(t *testing.T) {
 }
 
 func TestRequestWithInvalidPathParam(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -242,7 +244,7 @@ func TestRequestWithInvalidPathParam(t *testing.T) {
 }
 
 func TestRequestWithInvalidBody(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -269,13 +271,13 @@ func TestRequestWithInvalidBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"message\":\"firetail - request body invalid: request body has an error: doesn't match the schema: Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
+		"{\"code\":400,\"message\":\"firetail - request body invalid: request body has an error: doesn't match the schema:firetailerrors.Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
 		string(respBody),
 	)
 }
 
 func TestRequestWithValidAuth(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -308,7 +310,7 @@ func TestRequestWithValidAuth(t *testing.T) {
 }
 
 func TestRequestWithUnimplementedAuth(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 	})
 	require.Nil(t, err)
@@ -340,7 +342,7 @@ func TestRequestWithUnimplementedAuth(t *testing.T) {
 }
 
 func TestRequestWithMissingAuth(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -372,7 +374,7 @@ func TestRequestWithMissingAuth(t *testing.T) {
 }
 
 func TestRequestWithInvalidAuth(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -405,7 +407,7 @@ func TestRequestWithInvalidAuth(t *testing.T) {
 }
 
 func TestInvalidResponseBody(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -432,13 +434,13 @@ func TestInvalidResponseBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":500,\"message\":\"firetail - response body invalid: response body doesn't match the schema: Error at \\\"/description\\\": value is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
+		"{\"code\":500,\"message\":\"firetail - response body invalid: response body doesn't match the schema:firetailerrors.Error at \\\"/description\\\": value is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
 		string(respBody),
 	)
 }
 
 func TestInvalidResponseCode(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -471,7 +473,7 @@ func TestInvalidResponseCode(t *testing.T) {
 }
 
 func TestDisabledRequestValidation(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath:          "./test-spec.yaml",
 		DisableRequestValidation: true,
 	})
@@ -499,7 +501,7 @@ func TestDisabledRequestValidation(t *testing.T) {
 }
 
 func TestDisabledResponseValidation(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath:           "./test-spec.yaml",
 		AuthCallbacks:             authCallbacks,
 		DisableResponseValidation: true,
@@ -529,7 +531,7 @@ func TestDisabledResponseValidation(t *testing.T) {
 }
 
 func TestUnexpectedContentType(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 	})
@@ -558,7 +560,7 @@ func TestUnexpectedContentType(t *testing.T) {
 }
 
 func TestCustomXMLDecoder(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{
+	middleware, err := GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./test-spec.yaml",
 		AuthCallbacks:   authCallbacks,
 		CustomBodyDecoders: map[string]openapi3filter.BodyDecoder{
