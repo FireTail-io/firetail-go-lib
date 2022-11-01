@@ -95,7 +95,7 @@ func TestInvalidSpec(t *testing.T) {
 		OpenapiSpecPath: "./test-spec-invalid.yaml",
 	})
 	require.IsType(t, firetailerrors.ErrorAppspecInvalid{}, err)
-	require.Equal(t, "firetail - invalid appspec: invalid paths: a short description of the response is required", err.Error())
+	require.Equal(t, "firetail - invalid appspec: invalid paths: invalid path /health: invalid operation GET: a short description of the response is required", err.Error())
 }
 
 func TestRequestToInvalidRoute(t *testing.T) {
@@ -271,7 +271,7 @@ func TestRequestWithInvalidBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"message\":\"firetail - request body invalid: request body has an error: doesn't match the schema:firetailerrors.Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
+		"{\"code\":400,\"message\":\"firetail - request body invalid: request body has an error: doesn't match the schema: Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
 		string(respBody),
 	)
 }
@@ -336,7 +336,7 @@ func TestRequestWithUnimplementedAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: Security requirements failed, errors: firetail - security scheme 'ApiKeyAuth1' has not been implemented in the application, firetail - security scheme 'ApiKeyAuth2' has not been implemented in the application\"}",
+		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: security requirements failed: firetail - security scheme 'ApiKeyAuth1' has not been implemented in the application | firetail - security scheme 'ApiKeyAuth2' has not been implemented in the application, errors: firetail - security scheme 'ApiKeyAuth1' has not been implemented in the application, firetail - security scheme 'ApiKeyAuth2' has not been implemented in the application\"}",
 		string(respBody),
 	)
 }
@@ -368,7 +368,7 @@ func TestRequestWithMissingAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: Security requirements failed, errors: invalid API key, invalid API key\"}",
+		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
 		string(respBody),
 	)
 }
@@ -401,7 +401,7 @@ func TestRequestWithInvalidAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: Security requirements failed, errors: invalid API key, invalid API key\"}",
+		"{\"code\":401,\"message\":\"firetail - request did not satisfy security requirements: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
 		string(respBody),
 	)
 }
@@ -434,7 +434,7 @@ func TestInvalidResponseBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":500,\"message\":\"firetail - response body invalid: response body doesn't match the schema:firetailerrors.Error at \\\"/description\\\": value is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
+		"{\"code\":500,\"message\":\"firetail - response body invalid: response body doesn't match the schema: Error at \\\"/description\\\": value is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
 		string(respBody),
 	)
 }
