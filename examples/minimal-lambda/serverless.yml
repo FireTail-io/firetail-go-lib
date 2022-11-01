@@ -1,10 +1,6 @@
-service: aws-golang-simple-http-endpoint
-
-frameworkVersion: ">=2.0"
-
-provider:
-  name: aws
-  runtime: go1.x
+service: ${file(serverless.prod.yml):service}
+frameworkVersion: ${file(serverless.prod.yml):frameworkVersion}
+provider: ${file(serverless.prod.yml):provider}
 
 functions:
   hello:
@@ -19,12 +15,6 @@ functions:
       - httpApi:
           path: /world
           method: get
-
-package:
- exclude:
-   - ./**
- include:
-   - ./bin/**
 
 plugins:
   - serverless-offline
