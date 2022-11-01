@@ -9,3 +9,7 @@ clean:
 .PHONY: deploy
 deploy: clean build
 	sls deploy --verbose -c serverless.prod.yml
+
+.PHONY: remove
+remove:
+	sls remove --verbose -c serverless.prod.yml
