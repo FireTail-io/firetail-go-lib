@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-image: [ '1.18-bullseye' ]
+        go-version: [ '1.18' ]
     env:
       GOPRIVATE: github.com/FireTail-io/firetail-go-lib
     steps:
@@ -21,8 +21,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: git config --global url."https://theteacat:${TOKEN}@github.com".insteadOf "https://github.com"      
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
       - name: Run coverage
-        run: docker run --rm -v ${{ github.workspace }}:/src -w /src golang:${{ matrix.go-image }} go test ./... -race -coverprofile coverage.out -covermode atomic
+        run: go test ./... -race -coverprofile coverage.out -covermode atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
