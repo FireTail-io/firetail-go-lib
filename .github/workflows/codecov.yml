@@ -13,8 +13,13 @@ jobs:
     strategy:
       matrix:
         go-image: [ '1.18-bullseye' ]
+    env:
++     GOPRIVATE: github.com/FireTail-io/firetail-go-lib
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     steps:
-      - uses: actions/checkout@v3    
+      - uses: actions/checkout@v3
+      - name: Setup DEPLOY_KEY
+        run: git config --global url.https://$DEPLOY_KEY@github.com/.insteadOf https://github.com/
       - name: Run coverage
         run: docker run --rm -v ${{ github.workspace }}:/src -w /src golang:${{ matrix.go-image }} go test ./... -race -coverprofile coverage.out -covermode atomic
       - name: Upload coverage to Codecov
