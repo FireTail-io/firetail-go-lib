@@ -14,15 +14,8 @@ jobs:
       matrix:
         go-image: [ '1.18-bullseye' ]
     steps:
-      - uses: actions/checkout@v3
-      - name: Install SSH Client
-        uses: webfactory/ssh-agent@v0.6.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}      
-      - name: Configure git to use ssh instead of https
-        run: git config --global url.git@github.com:.insteadOf https://github.com/
-      - name: Export GOPRIVATE env var
-        run: export GOPRIVATE=github.com/FireTail-io/firetail-go-lib
+      - name: Remove examples
+        run: rm -rf ./examples
       - name: Run coverage
         run: docker run --rm -v ${{ github.workspace }}:/src -w /src golang:${{ matrix.go-image }} go test ./... -race -coverprofile coverage.out -covermode atomic
       - name: Upload coverage to Codecov
