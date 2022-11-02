@@ -14,7 +14,7 @@ jobs:
       matrix:
         go-image: [ '1.18-bullseye' ]
     env:
-+     GOPRIVATE: github.com/FireTail-io/firetail-go-lib
+      GOPRIVATE: github.com/FireTail-io/firetail-go-lib
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     steps:
       - uses: actions/checkout@v3
