@@ -14,8 +14,8 @@ jobs:
       matrix:
         go-image: [ '1.18-bullseye' ]
     steps:
-      - name: Remove examples
-        run: rm -rf ./examples
+      - name: Remove examples & workfile
+        run: rm -rf ./examples && rm go.work
       - name: Run coverage
         run: docker run --rm -v ${{ github.workspace }}:/src -w /src golang:${{ matrix.go-image }} go test ./... -race -coverprofile coverage.out -covermode atomic
       - name: Upload coverage to Codecov
