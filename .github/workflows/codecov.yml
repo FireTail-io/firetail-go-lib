@@ -17,9 +17,6 @@ jobs:
       GOPRIVATE: github.com/FireTail-io/firetail-go-lib
     steps:
       - uses: actions/checkout@v3
-      - name: Granting private modules access
-        run: |
-          git config --global url."https://${{ secrets.DEPLOY_KEY }}:x-oauth-basic@github.com/FireTail-io/firetail-go-lib".insteadOf "https://github.com/FireTail-io/firetail-go-lib"
       - name: Run coverage
         run: docker run --rm -v ${{ github.workspace }}:/src -w /src golang:${{ matrix.go-image }} go test ./... -race -coverprofile coverage.out -covermode atomic
       - name: Upload coverage to Codecov
