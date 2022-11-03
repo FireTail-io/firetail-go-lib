@@ -1,17 +1,16 @@
 package firetail
 
 import (
-	"encoding/json"
-	"net/http"
-
+	firetailerrors "github.com/FireTail-io/firetail-go-lib/errors"
 	"github.com/FireTail-io/firetail-go-lib/logging"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/getkin/kin-openapi/openapi3filter"
 )
 
 // Options is an options struct used when creating a Firetail middleware (GetMiddleware)
 type Options struct {
 	// SpecPath is the path at which your openapi spec can be found
-	OpenapiSpecPath string
+	OpenapiSpec string
 
 	// LogApiKey is the API key which will be used when sending logs to the Firetail logging API. This value should typically be loaded
 	// in from an environment variable.
@@ -29,7 +28,7 @@ type Options struct {
 	// ErrCallback is an optional callback func which is given an error and a ResponseWriter to which an apropriate response can be written
 	// for the error. This allows you customise the responses given, when for example a request or response fails to validate against the
 	// openapi spec, to be consistent with the format in which the rest of your application returns error responses
-	ErrCallback func(ErrorAtRequest, http.ResponseWriter, *http.Request)
+	ErrCallback func(firetailerrors.ErrorAtRequest) (events.APIGatewayV2HTTPResponse, error)
 
 	// AuthCallbacks is a map of strings, which should match the names of your appspec's securitySchemes, to callback funcs which must be
 	// defined if you wish to use security schemas in your openapi specification. See the openapi3filter package's reference for further
@@ -50,34 +49,4 @@ type Options struct {
 	// information, or anonymise identifiable information using a custom implementation of this callback for your application. A default
 	// implementation is provided in the firetail logging package.
 	LogEntrySanitiser func(logging.LogEntry) logging.LogEntry
-}
-
-func (o *Options) setDefaults() {
-	if o.LogApiUrl == "" {
-		o.LogApiUrl = "https://api.logging.eu-west-1.sandbox.firetail.app/logs/bulk"
-	}
-
-	if o.ErrCallback == nil {
-		o.ErrCallback = func(errAtRequest ErrorAtRequest, w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Content-Type", "application/json")
-			type ErrorResponse struct {
-				Code    int    `json:"code"`
-				Message string `json:"message"`
-			}
-			responseBody, err := json.Marshal(ErrorResponse{
-				Code:    errAtRequest.StatusCode(),
-				Message: errAtRequest.Error(),
-			})
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("{\"code\":500,\"message\":\"internal server error\"}"))
-			}
-			w.WriteHeader(errAtRequest.StatusCode())
-			w.Write([]byte(responseBody))
-		}
-	}
-
-	if o.LogEntrySanitiser == nil {
-		o.LogEntrySanitiser = logging.DefaultSanitiser()
-	}
 }

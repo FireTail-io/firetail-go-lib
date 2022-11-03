@@ -1,0 +1,20 @@
+service: ${file(serverless.prod.yml):service}
+frameworkVersion: ${file(serverless.prod.yml):frameworkVersion}
+provider: ${file(serverless.prod.yml):provider}
+
+functions:
+  hello:
+    handler: hello/main.go
+    events:
+      - httpApi:
+          path: /hello
+          method: get
+  world:
+    handler: world/main.go
+    events:
+      - httpApi:
+          path: /world
+          method: get
+
+plugins:
+  - serverless-offline

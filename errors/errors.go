@@ -1,4 +1,4 @@
-package firetail
+package firetailerrors
 
 import (
 	"fmt"

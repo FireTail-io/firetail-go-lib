@@ -16,6 +16,7 @@ import (
 
 	"github.com/FireTail-io/firetail-go-lib/examples/petstore-chi/api"
 	firetail "github.com/FireTail-io/firetail-go-lib/middlewares/http"
+	firetailoptions "github.com/FireTail-io/firetail-go-lib/options"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt"
@@ -43,7 +44,7 @@ func main() {
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.
-	firetailMiddleware, err := firetail.GetMiddleware(&firetail.Options{
+	firetailMiddleware, err := firetail.GetMiddleware(&firetailoptions.Options{
 		OpenapiSpecPath: "./petstore-expanded.yaml",
 		AuthCallbacks: map[string]openapi3filter.AuthenticationFunc{
 			"MyBearerAuth": func(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {

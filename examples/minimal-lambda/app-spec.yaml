@@ -1,0 +1,20 @@
+openapi: 3.0.1
+info:
+  title: Firetail Middleware Example
+  version: '0.1'
+paths:
+  /hello:
+    get:
+      summary: Hello world!
+      responses:
+        '200':
+          description: Hello world!
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  message:
+                    type: string
+                    enum: ["Go Serverless v1.0! Your function executed successfully!"]

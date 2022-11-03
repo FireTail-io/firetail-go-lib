@@ -1,31 +1,37 @@
 package firetail
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"log"
 	"strings"
 	"time"
 
 	firetailerrors "github.com/FireTail-io/firetail-go-lib/errors"
 	"github.com/FireTail-io/firetail-go-lib/logging"
-	firetailoptions "github.com/FireTail-io/firetail-go-lib/options"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/awslabs/aws-lambda-go-api-proxy/core"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/getkin/kin-openapi/routers/gorillamux"
 )
 
+type HandlerFunc = func(context.Context, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
+
+func convertHeaders(resp *events.APIGatewayV2HTTPResponse) (headers map[string][]string) {
+	for header, val := range resp.Headers {
+		headers[header] = []string{val}
+	}
+	return headers
+}
+
 // GetMiddleware creates & returns a firetail middleware. Errs if the openapi spec can't be found, validated, or loaded into a gorillamux router.
-func GetMiddleware(options *firetailoptions.Options) (func(next http.Handler) http.Handler, error) {
+func GetMiddleware(options *Options) (func(next HandlerFunc) HandlerFunc, error) {
 	options.SetDefaults() // Fill in any defaults where apropriate
 
 	// Load in our appspec, validate it & create a router from it.
 	loader := &openapi3.Loader{Context: context.Background(), IsExternalRefsAllowed: true}
-	doc, err := loader.LoadFromFile(options.OpenapiSpecPath)
+	doc, err := loader.LoadFromData([]byte(options.OpenapiSpec))
 	if err != nil {
 		return nil, firetailerrors.ErrorInvalidConfiguration{Err: err}
 	}
@@ -52,72 +58,58 @@ func GetMiddleware(options *firetailoptions.Options) (func(next http.Handler) ht
 		LogApiUrl:     options.LogApiUrl,
 	})
 
-	middleware := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	middleware := func(next HandlerFunc) HandlerFunc {
+		return func(ctx context.Context, r events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 			// Create a LogEntry populated with everything we know right now
 			logEntry := logging.LogEntry{
 				Version:     logging.The100Alpha,
 				DateCreated: time.Now().UnixMilli(),
 				Request: logging.Request{
-					HTTPProtocol: logging.HTTPProtocol(r.Proto),
-					Headers:      r.Header,
-					Method:       logging.Method(r.Method),
-					IP:           strings.Split(r.RemoteAddr, ":")[0],
+					HTTPProtocol: logging.HTTPProtocol(r.RequestContext.HTTP.Protocol),
+					// Headers:      r.Headers,
+					Method: logging.Method(r.RequestContext.HTTP.Method),
+					IP:     r.RequestContext.HTTP.SourceIP,
+					URI:    r.RequestContext.DomainName + r.RequestContext.HTTP.Path,
+					Body:   r.Body,
 				},
-			}
-			if r.TLS != nil {
-				logEntry.Request.URI = "https://" + r.Host + r.URL.RequestURI()
-			} else {
-				logEntry.Request.URI = "http://" + r.Host + r.URL.RequestURI()
 			}
 
 			// Create a Firetail ResponseWriter so we can access the response body, status code etc. for logging & validation later
-			localResponseWriter := httptest.NewRecorder()
+			var nextProxyResponsePtr *events.APIGatewayV2HTTPResponse
+			var nextErr error
 
 			// No matter what happens, read the response from the local response writer, enqueue the log entry & publish the response that was written to the ResponseWriter
 			defer func() {
-				logEntry.Response = logging.Response{
-					StatusCode: int64(localResponseWriter.Code),
-					Body:       string(localResponseWriter.Body.Bytes()),
-					Headers:    localResponseWriter.Result().Header,
+				if nextProxyResponsePtr != nil {
+					logEntry.Response = logging.Response{
+						StatusCode: int64(nextProxyResponsePtr.StatusCode),
+						Body:       nextProxyResponsePtr.Body,
+						Headers:    convertHeaders(nextProxyResponsePtr),
+					}
 				}
 
 				// Remember to sanitise the log entry before enqueueing it!
 				logEntry = options.LogEntrySanitiser(logEntry)
 
 				batchLogger.Enqueue(&logEntry)
-
-				for key, vals := range localResponseWriter.HeaderMap {
-					for _, val := range vals {
-						w.Header().Add(key, val)
-					}
-				}
-				w.WriteHeader(localResponseWriter.Code)
-				w.Write(localResponseWriter.Body.Bytes())
 			}()
 
-			// Read in the request body so we can log it & replace r.Body with a new copy for the next http.Handler to read from
-			requestBody, err := ioutil.ReadAll(r.Body)
+			httpRequest, err := (&core.RequestAccessor{}).EventToRequest(r)
 			if err != nil {
-				options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
-				return
+				return options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err})
 			}
-			r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 
-			// Now we have the request body, we can fill it into our log entry
-			logEntry.Request.Body = string(requestBody)
+			log.Println(r, httpRequest)
 
 			// Check there's a corresponding route for this request
-			route, pathParams, err := router.FindRoute(r)
+			route, pathParams, err := router.FindRoute(httpRequest)
 			if err == routers.ErrMethodNotAllowed {
-				options.ErrCallback(firetailerrors.ErrorUnsupportedMethod{RequestedPath: r.URL.Path, RequestedMethod: r.Method}, localResponseWriter, r)
-				return
+				return options.ErrCallback(firetailerrors.ErrorUnsupportedMethod{RequestedPath: r.RequestContext.HTTP.Path, RequestedMethod: r.RequestContext.HTTP.Method})
+
 			} else if err == routers.ErrPathNotFound {
-				options.ErrCallback(firetailerrors.ErrorRouteNotFound{RequestedPath: r.URL.Path}, localResponseWriter, r)
-				return
+				return options.ErrCallback(firetailerrors.ErrorRouteNotFound{RequestedPath: r.RequestContext.HTTP.Path})
 			} else if err != nil {
-				options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
-				return
+				return options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err})
 			}
 
 			// We now know the resource that was requested, so we can fill it into our log entry
@@ -126,7 +118,7 @@ func GetMiddleware(options *firetailoptions.Options) (func(next http.Handler) ht
 			// If it hasn't been disabled, validate the request against the OpenAPI spec.
 			if !options.DisableRequestValidation {
 				requestValidationInput := &openapi3filter.RequestValidationInput{
-					Request:    r,
+					Request:    httpRequest,
 					PathParams: pathParams,
 					Route:      route,
 					Options: &openapi3filter.Options{
@@ -147,90 +139,72 @@ func GetMiddleware(options *firetailoptions.Options) (func(next http.Handler) ht
 						// See the following open issue on the kin-openapi repo: https://github.com/getkin/kin-openapi/issues/477
 						// TODO: Open source contribution to kin-openapi?
 						if strings.Contains(err.Reason, "header Content-Type has unexpected value") {
-							options.ErrCallback(firetailerrors.ErrorRequestContentTypeInvalid{RequestedContentType: r.Header.Get("Content-Type"), RequestedRoute: route.Path}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorRequestContentTypeInvalid{RequestedContentType: r.Headers["Content-Type"], RequestedRoute: route.Path})
 						}
 						if strings.Contains(err.Error(), "body has an error") {
-							options.ErrCallback(firetailerrors.ErrorRequestBodyInvalid{Err: err}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorRequestBodyInvalid{Err: err})
 						}
 						if strings.Contains(err.Error(), "header has an error") {
-							options.ErrCallback(firetailerrors.ErrorRequestHeadersInvalid{Err: err}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorRequestHeadersInvalid{Err: err})
 						}
 						if strings.Contains(err.Error(), "query has an error") {
-							options.ErrCallback(firetailerrors.ErrorRequestQueryParamsInvalid{Err: err}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorRequestQueryParamsInvalid{Err: err})
 						}
 						if strings.Contains(err.Error(), "path has an error") {
-							options.ErrCallback(firetailerrors.ErrorRequestPathParamsInvalid{Err: err}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorRequestPathParamsInvalid{Err: err})
 						}
 					}
 
 					// If the validation fails due to a security requirement, we pass a SecurityRequirementsError to the ErrCallback
 					if err, isSecurityErr := err.(*openapi3filter.SecurityRequirementsError); isSecurityErr {
-						options.ErrCallback(firetailerrors.ErrorAuthNoMatchingScheme{Err: err}, localResponseWriter, r)
-						return
+						return options.ErrCallback(firetailerrors.ErrorAuthNoMatchingScheme{Err: err})
+
 					}
 
 					// Else, we just use a non-specific ValidationError error
-					options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
-					return
+					return options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err})
 				}
 			}
 
 			// Serve the next handler down the chain & take note of the execution time
-			chainResponseWriter := httptest.NewRecorder()
 			startTime := time.Now()
-			next.ServeHTTP(chainResponseWriter, r)
+			nextProxyResponse, nextErr := next(ctx, r)
 			logEntry.ExecutionTime = float64(time.Since(startTime).Milliseconds())
+			if err == nil {
+				nextProxyResponsePtr = &nextProxyResponse
+			}
 
 			// If it hasn't been disabled, validate the response against the openapi spec
 			if !options.DisableResponseValidation {
 				responseValidationInput := &openapi3filter.ResponseValidationInput{
 					RequestValidationInput: &openapi3filter.RequestValidationInput{
-						Request:    r,
+						Request:    httpRequest,
 						PathParams: pathParams,
 						Route:      route,
 					},
-					Status: chainResponseWriter.Result().StatusCode,
-					Header: chainResponseWriter.Header(),
+					Status: nextProxyResponse.StatusCode,
+					Header: convertHeaders(nextProxyResponsePtr),
 					Options: &openapi3filter.Options{
 						IncludeResponseStatus: true,
 					},
 				}
-				responseBytes, err := ioutil.ReadAll(chainResponseWriter.Result().Body)
-				if err != nil {
-					options.ErrCallback(firetailerrors.ErrorResponseBodyInvalid{Err: err}, localResponseWriter, r)
-					return
-				}
-				responseValidationInput.SetBodyBytes(responseBytes)
+				responseValidationInput.SetBodyBytes([]byte(nextProxyResponse.Body))
 				err = openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 				if err != nil {
 					if responseError, isResponseError := err.(*openapi3filter.ResponseError); isResponseError {
 						if responseError.Reason == "response body doesn't match the schema" {
-							options.ErrCallback(firetailerrors.ErrorResponseBodyInvalid{Err: responseError}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorResponseBodyInvalid{Err: responseError})
 						} else if responseError.Reason == "status is not supported" {
-							options.ErrCallback(firetailerrors.ErrorResponseStatusCodeInvalid{RespondedStatusCode: responseError.Input.Status}, localResponseWriter, r)
-							return
+							return options.ErrCallback(firetailerrors.ErrorResponseStatusCodeInvalid{RespondedStatusCode: responseError.Input.Status})
 						}
 					}
-					options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err}, localResponseWriter, r)
-					return
+					return options.ErrCallback(firetailerrors.ErrorAtRequestUnspecified{Err: err})
 				}
 			}
 
-			// If the response written down the chain passed all of the enabled validation, we can now write it to our localResponseWriter
-			for key, vals := range chainResponseWriter.HeaderMap {
-				for _, val := range vals {
-					localResponseWriter.Header().Add(key, val)
-				}
-			}
-			localResponseWriter.WriteHeader(chainResponseWriter.Code)
-			localResponseWriter.Write(chainResponseWriter.Body.Bytes())
-		})
+			// If the response written down the chain passed all of the enabled validation, we can now return it
+			return nextProxyResponse, nextErr
+		}
 	}
 
 	return middleware, nil

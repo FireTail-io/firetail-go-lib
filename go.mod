@@ -3,11 +3,13 @@ module github.com/FireTail-io/firetail-go-lib
 go 1.19
 
 require (
+	github.com/aws/aws-lambda-go v1.19.1
 	github.com/getkin/kin-openapi v0.103.0
 	github.com/stretchr/testify v1.8.0
 )
 
 require (
+	github.com/awslabs/aws-lambda-go-api-proxy v0.13.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
