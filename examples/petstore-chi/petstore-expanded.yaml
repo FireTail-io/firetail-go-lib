@@ -40,6 +40,7 @@ paths:
           required: false
           schema:
             type: integer
+            # maximum: 100
             format: int32
       responses:
         '200':
@@ -87,6 +88,7 @@ paths:
           required: true
           schema:
             type: integer
+            # minimum: 0
             format: int64
       responses:
         '200':
@@ -183,6 +185,7 @@ components:
       properties:
         name:
           type: string
+          # maxLength: 10
           description: Name of the pet
         owner:
           type: string
