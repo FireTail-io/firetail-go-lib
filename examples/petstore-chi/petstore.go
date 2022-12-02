@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -22,27 +23,14 @@ func main() {
 	flag.Parse()
 	log.Printf("Serving on port %d", *port)
 
-	swagger, err := api.GetSwagger()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
-		os.Exit(1)
-	}
-
-	// Clear out the servers array in the swagger spec, that skips validating
-	// that server names match. We don't know how this thing will be run.
-	swagger.Servers = nil
-
-	// Create an instance of our handler which satisfies the generated interface
-	petStore := api.NewPetStore()
-
-	// This is how you set up a basic chi router
+	// Create a Chi router & use our validation middleware to check all
+	// requests against the OpenAPI schema. We'll use debug mode for this
+	// demo, so the error responses have extra information about exactly
+	// what the middleware is doing.
 	r := chi.NewRouter()
+	r.Use(getFiretaiLMiddleware(true))
 
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	r.Use(getFiretaiLMiddleware())
-
-	// We now register our petStore above as the handler for the interface
+	petStore := api.NewPetStore()
 	api.HandlerFromMux(petStore, r)
 
 	s := &http.Server{
@@ -50,14 +38,20 @@ func main() {
 		Addr:    fmt.Sprintf("0.0.0.0:%d", *port),
 	}
 
-	// And we serve HTTP until the world ends.
 	log.Fatal(s.ListenAndServe())
 }
 
-func getFiretaiLMiddleware() func(next http.Handler) http.Handler {
+func getFiretaiLMiddleware(debug bool) func(next http.Handler) http.Handler {
 	firetailMiddleware, err := firetail.GetMiddleware(&firetail.Options{
 		OpenapiSpecPath: "./petstore-expanded.yaml",
-		DebugErrs:       true,
+		DebugErrs:       debug,
+		LogBatchCallback: func(b [][]byte) {
+			// Here we could send the logs to a custom destination
+			log.Println("Log batch:")
+			for _, logBytes := range b {
+				log.Println(prettyPrintJson(logBytes))
+			}
+		},
 		AuthCallbacks: map[string]openapi3filter.AuthenticationFunc{
 			"MyBearerAuth": func(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
 				authHeaderValue := ai.RequestValidationInput.Request.Header.Get("Authorization")
@@ -91,4 +85,17 @@ func getFiretaiLMiddleware() func(next http.Handler) http.Handler {
 		panic(err)
 	}
 	return firetailMiddleware
+}
+
+func prettyPrintJson(jsonBytes []byte) string {
+	var unmarshalledJson json.RawMessage
+	err := json.Unmarshal([]byte(jsonBytes), &unmarshalledJson)
+	if err != nil {
+		panic(err)
+	}
+	prettyJson, err := json.MarshalIndent(unmarshalledJson, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(prettyJson)
 }
