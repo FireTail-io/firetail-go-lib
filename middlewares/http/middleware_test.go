@@ -117,7 +117,7 @@ func TestRequestToInvalidRoute(t *testing.T) {
 
 	respBody, err := io.ReadAll(responseRecorder.Body)
 	require.Nil(t, err)
-	assert.Equal(t, "{\"code\":404,\"title\":\"the resource \\\"/not-implemented\\\" could not be found\",\"detail\":\"a path for \\\"/not-implemented\\\" could not be found in your appspec\"}", string(respBody))
+	assert.Equal(t, "{\"code\":404,\"title\":\"the resource \\\"/not-implemented\\\" could not be found\",\"debug\":\"a path for \\\"/not-implemented\\\" could not be found in your appspec\"}", string(respBody))
 }
 
 func TestDebugErrsDisabled(t *testing.T) {
@@ -164,7 +164,7 @@ func TestRequestWithDisallowedMethod(t *testing.T) {
 
 	respBody, err := io.ReadAll(responseRecorder.Body)
 	require.Nil(t, err)
-	assert.Equal(t, "{\"code\":405,\"title\":\"the resource \\\"/implemented/1\\\" does not support the \\\"GET\\\" method\",\"detail\":\"the path for \\\"/implemented/1\\\" in your appspec does not support the method \\\"GET\\\"\"}", string(respBody))
+	assert.Equal(t, "{\"code\":405,\"title\":\"the resource \\\"/implemented/1\\\" does not support the \\\"GET\\\" method\",\"debug\":\"the path for \\\"/implemented/1\\\" in your appspec does not support the method \\\"GET\\\"\"}", string(respBody))
 }
 
 func TestRequestWithInvalidHeader(t *testing.T) {
@@ -197,7 +197,7 @@ func TestRequestWithInvalidHeader(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"title\":\"something's wrong with your request headers\",\"detail\":\"the request's headers did not match your appspec: parameter \\\"X-Test-Header\\\" in header has an error: value invalid: an invalid number: invalid syntax\"}",
+		"{\"code\":400,\"title\":\"something's wrong with your request headers\",\"debug\":\"the request's headers did not match your appspec: parameter \\\"X-Test-Header\\\" in header has an error: value invalid: an invalid number: invalid syntax\"}",
 		string(respBody),
 	)
 }
@@ -231,7 +231,7 @@ func TestRequestWithInvalidQueryParam(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"title\":\"something's wrong with your query parameters\",\"detail\":\"the request's query parameters did not match your appspec: parameter \\\"test-param\\\" in query has an error: value invalid: an invalid number: invalid syntax\"}",
+		"{\"code\":400,\"title\":\"something's wrong with your query parameters\",\"debug\":\"the request's query parameters did not match your appspec: parameter \\\"test-param\\\" in query has an error: value invalid: an invalid number: invalid syntax\"}",
 		string(respBody),
 	)
 }
@@ -264,7 +264,7 @@ func TestRequestWithInvalidPathParam(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"title\":\"something's wrong with your path parameters\",\"detail\":\"the request's path parameters did not match your appspec: parameter \\\"testparam\\\" in path has an error: value invalid-path-param: an invalid number: invalid syntax\"}",
+		"{\"code\":400,\"title\":\"something's wrong with your path parameters\",\"debug\":\"the request's path parameters did not match your appspec: parameter \\\"testparam\\\" in path has an error: value invalid-path-param: an invalid number: invalid syntax\"}",
 		string(respBody),
 	)
 }
@@ -298,7 +298,7 @@ func TestRequestWithInvalidBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":400,\"title\":\"something's wrong with your request body\",\"detail\":\"the request's body did not match your appspec: request body has an error: doesn't match the schema: Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
+		"{\"code\":400,\"title\":\"something's wrong with your request body\",\"debug\":\"the request's body did not match your appspec: request body has an error: doesn't match the schema: Error at \\\"/description\\\": property \\\"description\\\" is missing\\nSchema:\\n  {\\n    \\\"additionalProperties\\\": false,\\n    \\\"properties\\\": {\\n      \\\"description\\\": {\\n        \\\"enum\\\": [\\n          \\\"test description\\\"\\n        ],\\n        \\\"type\\\": \\\"string\\\"\\n      }\\n    },\\n    \\\"required\\\": [\\n      \\\"description\\\"\\n    ],\\n    \\\"type\\\": \\\"object\\\"\\n  }\\n\\nValue:\\n  {}\\n\"}",
 		string(respBody),
 	)
 }
@@ -364,7 +364,7 @@ func TestRequestWithUnimplementedAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"detail\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: the security scheme \\\"ApiKeyAuth1\\\" from your appspec has not been implemented in the application | the security scheme \\\"ApiKeyAuth2\\\" from your appspec has not been implemented in the application, errors: the security scheme \\\"ApiKeyAuth1\\\" from your appspec has not been implemented in the application, the security scheme \\\"ApiKeyAuth2\\\" from your appspec has not been implemented in the application\"}",
+		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"debug\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: the security scheme \\\"ApiKeyAuth1\\\" from your appspec has not been implemented in the application | the security scheme \\\"ApiKeyAuth2\\\" from your appspec has not been implemented in the application, errors: the security scheme \\\"ApiKeyAuth1\\\" from your appspec has not been implemented in the application, the security scheme \\\"ApiKeyAuth2\\\" from your appspec has not been implemented in the application\"}",
 		string(respBody),
 	)
 }
@@ -397,7 +397,7 @@ func TestRequestWithMissingAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"detail\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
+		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"debug\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
 		string(respBody),
 	)
 }
@@ -431,7 +431,7 @@ func TestRequestWithInvalidAuth(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"detail\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
+		"{\"code\":401,\"title\":\"you're not authorized to do this\",\"debug\":\"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid API key | invalid API key, errors: invalid API key, invalid API key\"}",
 		string(respBody),
 	)
 }
@@ -465,7 +465,7 @@ func TestInvalidResponseBody(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":500,\"title\":\"internal server error\",\"detail\":\"the response's body did not match your appspec: response body doesn't match the schema: Error at \\\"/description\\\": value \\\"another test description\\\" is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
+		"{\"code\":500,\"title\":\"internal server error\",\"debug\":\"the response's body did not match your appspec: response body doesn't match the schema: Error at \\\"/description\\\": value \\\"another test description\\\" is not one of the allowed values\\nSchema:\\n  {\\n    \\\"enum\\\": [\\n      \\\"test description\\\"\\n    ],\\n    \\\"type\\\": \\\"string\\\"\\n  }\\n\\nValue:\\n  \\\"another test description\\\"\\n\"}",
 		string(respBody),
 	)
 }
@@ -499,7 +499,7 @@ func TestInvalidResponseCode(t *testing.T) {
 	require.Nil(t, err)
 	assert.Equal(
 		t,
-		"{\"code\":500,\"title\":\"internal server error\",\"detail\":\"the response's status code did not match your appspec: 201\"}",
+		"{\"code\":500,\"title\":\"internal server error\",\"debug\":\"the response's status code did not match your appspec: 201\"}",
 		string(respBody),
 	)
 }
@@ -589,7 +589,7 @@ func TestUnexpectedContentType(t *testing.T) {
 
 	respBody, err := io.ReadAll(responseRecorder.Body)
 	require.Nil(t, err)
-	assert.Equal(t, "{\"code\":415,\"title\":\"the path for \\\"/implemented/{testparam}\\\" in your appspec does not support the content type \\\"text/plain\\\"\",\"detail\":\"the path for \\\"/implemented/{testparam}\\\" in your appspec does not support content type \\\"text/plain\\\"\"}", string(respBody))
+	assert.Equal(t, "{\"code\":415,\"title\":\"the path for \\\"/implemented/{testparam}\\\" in your appspec does not support the content type \\\"text/plain\\\"\",\"debug\":\"the path for \\\"/implemented/{testparam}\\\" in your appspec does not support content type \\\"text/plain\\\"\"}", string(respBody))
 }
 
 func TestCustomXMLDecoder(t *testing.T) {

@@ -34,7 +34,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 404 Not Found
   < Content-Type: application/json
-  {"code":404,"title":"the resource \"/owners\" could not be found","detail":"a path for \"/owners\" could not be found in your appspec"}
+  {"code":404,"title":"the resource \"/owners\" could not be found","debug":"a path for \"/owners\" could not be found in your appspec"}
   ```
 
 - Requests made to paths that are defined in your appspec, but are made with unsupported methods:
@@ -45,7 +45,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 405 Method Not Allowed
   < Content-Type: text/plain
-  {"code":405,"title":"the resource \"/pets\" does not support the \"DELETE\" method","detail":"the path for \"/pets\" in your appspec does not support the method \"DELETE\""}
+  {"code":405,"title":"the resource \"/pets\" does not support the \"DELETE\" method","debug":"the path for \"/pets\" in your appspec does not support the method \"DELETE\""}
   ```
 
 - Requests made to paths defined in your appspec, with methods defined in your appspec, but with a `Content-Type` that hasn't been defined in your appspec:
@@ -56,7 +56,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 415 Unsupported Media Type
   < Content-Type: text/plain
-  {"code":415,"title":"the path for \"/pets\" in your appspec does not support the content type \"application/xml\"","detail":"the path for \"/pets\" in your appspec does not support content type \"application/xml\""}
+  {"code":415,"title":"the path for \"/pets\" in your appspec does not support the content type \"application/xml\"","debug":"the path for \"/pets\" in your appspec does not support content type \"application/xml\""}
   ```
   
 - Requests made with path parameters that don't match the schema defined in your appspec:
@@ -67,7 +67,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 400 Bad Request
   < Content-Type: text/plain
-  {"code":400,"title":"something's wrong with your path parameters","detail":"the request's path parameters did not match your appspec: parameter \"id\" in path has an error: value abc: an invalid integer: invalid syntax"}
+  {"code":400,"title":"something's wrong with your path parameters","debug":"the request's path parameters did not match your appspec: parameter \"id\" in path has an error: value abc: an invalid integer: invalid syntax"}
   ```
 
 - Requests made with query parameters that don't match the schema defined in your appspec:
@@ -78,7 +78,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 400 Bad Request
   < Content-Type: text/plain
-  {"code":400,"title":"something's wrong with your query parameters","detail":"the request's query parameters did not match your appspec: parameter \"limit\" in query has an error: value abc: an invalid integer: invalid syntax"}
+  {"code":400,"title":"something's wrong with your query parameters","debug":"the request's query parameters did not match your appspec: parameter \"limit\" in query has an error: value abc: an invalid integer: invalid syntax"}
   ```
 
 - Requests made with bodies that don't match the schema defined in your appspec:
@@ -90,7 +90,7 @@ The Firetail middleware blocks:
   ```
   < HTTP/1.1 400 Bad Request
   < Content-Type: text/plain
-  {"code":400,"title":"something's wrong with your request body","detail":"the request's body did not match your appspec: request body has an error: doesn't match the schema: Error at \"/name\": Field must be set to string or not be present\nSchema:\n  {\n    \"description\": \"Name of the pet\",\n    \"type\": \"string\"\n  }\n\nValue:\n  \"number, integer\"\n"}
+  {"code":400,"title":"something's wrong with your request body","debug":"the request's body did not match your appspec: request body has an error: doesn't match the schema: Error at \"/name\": Field must be set to string or not be present\nSchema:\n  {\n    \"description\": \"Name of the pet\",\n    \"type\": \"string\"\n  }\n\nValue:\n  \"number, integer\"\n"}
   ```
 
 
@@ -165,7 +165,7 @@ Then attempting to:
    ```
    < HTTP/1.1 401 Unauthorized
    < Content-Type: text/plain
-   {"code":401,"title":"you're not authorized to do this","detail":"the request did not satisfy the security requirements in your appspec: security requirements failed: no bearer token supplied for \"MyBearerAuth\", errors: no bearer token supplied for \"MyBearerAuth\""}
+   {"code":401,"title":"you're not authorized to do this","debug":"the request did not satisfy the security requirements in your appspec: security requirements failed: no bearer token supplied for \"MyBearerAuth\", errors: no bearer token supplied for \"MyBearerAuth\""}
    ```
 
 2. Delete the pet with an invalid JWT:
@@ -176,7 +176,7 @@ Then attempting to:
    ```
    < HTTP/1.1 401 Unauthorized
    < Content-Type: text/plain
-   {"code":401,"title":"you're not authorized to do this","detail":"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid jwt supplied for \"MyBearerAuth\", errors: invalid jwt supplied for \"MyBearerAuth\""}
+   {"code":401,"title":"you're not authorized to do this","debug":"the request did not satisfy the security requirements in your appspec: security requirements failed: invalid jwt supplied for \"MyBearerAuth\", errors: invalid jwt supplied for \"MyBearerAuth\""}
    ```
 
 3. Get a valid JWT from the petstore's `/auth` endpoint:
@@ -233,7 +233,7 @@ curl localhost:8080/pets -X POST -H "Content-Type: application/json" -d '{"name"
 ```
 < HTTP/1.1 500 Internal Server Error
 < Content-Type: application/json
-{"code":500,"title":"internal server error","detail":"the response's status code did not match your appspec: 400"}
+{"code":500,"title":"internal server error","debug":"the response's status code did not match your appspec: 400"}
 ```
 
 
@@ -300,7 +300,7 @@ This allows us to test out the response body validation by:
    ```
    < HTTP/1.1 500 Internal Server Error
    < Content-Type: text/plain
-   {"code":500,"title":"internal server error","detail":"the response's body did not match your appspec: response body doesn't match the schema: Error at \"/0\": property \"owner\" is unsupported\nSchema:\n  {\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"id\": {\n        \"description\": \"Unique id of the pet\",\n        \"format\": \"int64\",\n        \"type\": \"integer\"\n      },\n      \"name\": {\n        \"description\": \"Name of the pet\",\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"id\",\n      \"name\"\n    ]\n  }\n\nValue:\n  {\n    \"id\": 1000,\n    \"name\": \"Spot\",\n    \"owner\": \"Data\"\n  }\n"}
+   {"code":500,"title":"internal server error","debug":"the response's body did not match your appspec: response body doesn't match the schema: Error at \"/0\": property \"owner\" is unsupported\nSchema:\n  {\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"id\": {\n        \"description\": \"Unique id of the pet\",\n        \"format\": \"int64\",\n        \"type\": \"integer\"\n      },\n      \"name\": {\n        \"description\": \"Name of the pet\",\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"id\",\n      \"name\"\n    ]\n  }\n\nValue:\n  {\n    \"id\": 1000,\n    \"name\": \"Spot\",\n    \"owner\": \"Data\"\n  }\n"}
    ```
    
    
