@@ -162,7 +162,7 @@ func (p *PetStore) Auth(w http.ResponseWriter, r *http.Request) {
 func (p *PetStore) Owners(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(200)
-	w.Write([]byte(`{"message":"Oh no, this information shouldn't be public!"}`))
+	w.Write([]byte(`[{"id":1000,"name":"Josh"}]`))
 }
 
 func (p *PetStore) DeletePets(w http.ResponseWriter, r *http.Request) {
