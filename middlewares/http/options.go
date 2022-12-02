@@ -63,7 +63,7 @@ func (o *Options) setDefaults() {
 
 	if o.ErrCallback == nil {
 		o.ErrCallback = func(errAtRequest ErrorAtRequest, w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Content-Type", "application/json")
+			w.Header().Add("Content-Type", "application/problem+json")
 			type ErrorResponse struct {
 				Code  int    `json:"code"`
 				Title string `json:"title"`
