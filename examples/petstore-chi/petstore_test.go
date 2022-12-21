@@ -109,7 +109,7 @@ func TestPetStore(t *testing.T) {
 		}
 
 		// Filter pets by tag, we should have 1
-		rr := doGet(t, r, "/pets?tags=TagOfFido")
+		rr := doGet(t, r, "/pets?owners=OwnerOfFido")
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var petList []api.Pet
@@ -118,14 +118,14 @@ func TestPetStore(t *testing.T) {
 		assert.Equal(t, 1, len(petList))
 	})
 
-	t.Run("Filter pets by tag", func(t *testing.T) {
+	t.Run("Filter pets by owner", func(t *testing.T) {
 		store.Pets = map[int64]api.Pet{
 			1: {},
 			2: {},
 		}
 
-		// Filter pets by non-existent tag, we should have 0
-		rr := doGet(t, r, "/pets?tags=NotExists")
+		// Filter pets by non-existent owner, we should have 0
+		rr := doGet(t, r, "/pets?owners=NotExists")
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var petList []api.Pet

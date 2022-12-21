@@ -58,7 +58,7 @@ type Options struct {
 
 func (o *Options) setDefaults() {
 	if o.LogApiUrl == "" {
-		o.LogApiUrl = "https://api.logging.eu-west-1.sandbox.firetail.app/logs/bulk"
+		o.LogApiUrl = "https://api.logging.eu-west-1.prod.firetail.app/logs/bulk"
 	}
 
 	if o.ErrCallback == nil {
