@@ -182,7 +182,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 			chainResponseWriter := httptest.NewRecorder()
 			startTime := time.Now()
 			next.ServeHTTP(chainResponseWriter, r)
-			logEntry.ExecutionTime = float64(time.Since(startTime).Milliseconds())
+			logEntry.ExecutionTime = float64(time.Since(startTime).Nanoseconds()) / 1000000
 
 			// If it hasn't been disabled, validate the response against the openapi spec
 			if !options.DisableResponseValidation {

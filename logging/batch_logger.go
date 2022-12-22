@@ -30,7 +30,8 @@ func NewBatchLogger(options BatchLoggerOptions) *batchLogger {
 		maxLogAge:    options.MaxLogAge,
 	}
 
-	if options.BatchCallback == nil {
+	newLogger.batchCallback = options.BatchCallback
+	if newLogger.batchCallback == nil {
 		newLogger.batchCallback = getDefaultBatchCallback(options)
 	}
 

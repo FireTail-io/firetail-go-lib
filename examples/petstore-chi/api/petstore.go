@@ -86,7 +86,7 @@ func (p *PetStore) AddPet(w http.ResponseWriter, r *http.Request) {
 
 	// We check the pet's name isn't the empty string
 	if newPet.Name == "" {
-		sendPetstoreError(w, http.StatusBadRequest, "NewPet must have a name")
+		sendPetstoreError(w, http.StatusForbidden, "NewPet must have a name")
 		return
 	}
 
@@ -162,7 +162,7 @@ func (p *PetStore) Auth(w http.ResponseWriter, r *http.Request) {
 func (p *PetStore) Owners(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(200)
-	w.Write([]byte(`{"message":"Oh no, this information shouldn't be public!"}`))
+	w.Write([]byte(`[{"id":1000,"name":"Josh"}]`))
 }
 
 func (p *PetStore) DeletePets(w http.ResponseWriter, r *http.Request) {
