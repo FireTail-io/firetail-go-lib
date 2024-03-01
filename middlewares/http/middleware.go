@@ -34,9 +34,17 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 	}
 
 	// Create a batchLogger to pass all our log entries to
+	maxBatchSize := 1024 * 512
+	if options.MaxBatchSize > 0 {
+		maxBatchSize = options.MaxBatchSize
+	}
+	maxLogAge := time.Minute
+	if options.MaxLogAge > 0 {
+		maxLogAge = options.MaxLogAge
+	}
 	batchLogger := logging.NewBatchLogger(logging.BatchLoggerOptions{
-		MaxBatchSize:  1024 * 512,
-		MaxLogAge:     time.Minute,
+		MaxBatchSize:  maxBatchSize,
+		MaxLogAge:     maxLogAge,
 		BatchCallback: options.LogBatchCallback,
 		LogApiKey:     options.LogsApiToken,
 		LogApiUrl:     options.LogsApiUrl,
@@ -53,6 +61,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 					Headers:      r.Header,
 					Method:       logging.Method(r.Method),
 					IP:           strings.Split(r.RemoteAddr, ":")[0],
+					Resource:     r.URL.RequestURI(), // We'll fill this in later if we have a router
 				},
 			}
 			if r.TLS != nil {

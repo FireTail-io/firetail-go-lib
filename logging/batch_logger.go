@@ -25,9 +25,10 @@ type BatchLoggerOptions struct {
 // NewBatchLogger creates a new batchLogger with the provided options
 func NewBatchLogger(options BatchLoggerOptions) *batchLogger {
 	newLogger := &batchLogger{
-		queue:        make(chan *LogEntry),
-		maxBatchSize: options.MaxBatchSize,
-		maxLogAge:    options.MaxLogAge,
+		queue:         make(chan *LogEntry),
+		maxBatchSize:  options.MaxBatchSize,
+		maxLogAge:     options.MaxLogAge,
+		batchCallback: options.BatchCallback,
 	}
 
 	if options.BatchCallback == nil {
