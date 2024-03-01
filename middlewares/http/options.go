@@ -34,12 +34,12 @@ type Options struct {
 	// to a file on disk
 	LogBatchCallback func([][]byte)
 
-	// MaxBatchSize is the maximum size of a logging batch which will be sent to the Firetail logging API, in bytes, if the default batch
-	// callback is used. Defaults to 512KiB (524288B).
+	// MaxBatchSize is the maximum size of a logging batch in bytes which will be passed to the LogBatchCallback, or the default callback
+	// if it is used.
 	MaxBatchSize int
 
-	// MaxLogAge is the maximum age of the oldest log in a batch which will be sent to the Firetail logging API, if the default batch
-	// callback is used. Defaults to 1 minute.
+	// MaxLogAge is the maximum age of the oldest log in a batch which will be passed to the LogBatchCallback, or the default callback if
+	// it is used.
 	MaxLogAge time.Duration
 
 	// ErrCallback is an optional callback func which is given an error and a ResponseWriter to which an apropriate response can be written
