@@ -53,6 +53,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 					Headers:      r.Header,
 					Method:       logging.Method(r.Method),
 					IP:           strings.Split(r.RemoteAddr, ":")[0],
+					Resource:     r.URL.RequestURI(), // We'll fill this in later if we have a router
 				},
 			}
 			if r.TLS != nil {
