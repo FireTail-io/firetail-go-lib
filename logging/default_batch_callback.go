@@ -4,29 +4,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
+	"strings"
+	"fmt"
 )
 
 func getDefaultBatchCallback(options BatchLoggerOptions) func([][]byte) {
 	sendBatch := func(batchBytes [][]byte) error {
-		reqBytes := []byte{}
-		for _, entry := range batchBytes {
-			reqBytes = append(reqBytes, entry...)
-			reqBytes = append(reqBytes, '\n')
-		}
+                reqBytes := []byte{}
+                for _, entry := range batchBytes {
+                        reqBytes = append(reqBytes, entry...)
+                        reqBytes = append(reqBytes, '\n')
+                }
 
-		req, err := http.NewRequest("POST", options.LogApiUrl, bytes.NewBuffer(reqBytes))
+		url := strings.TrimSpace(options.LogApiUrl)
+
+                req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBytes))
 		if err != nil {
-			return err
+                        return errors.New(fmt.Sprintf("request error: %v", err))
 		}
 
-		req.Header.Set("x-ft-api-key", options.LogApiKey)
+		apiKey := strings.TrimSpace(options.LogApiKey)
 
+		req.Header.Set("x-ft-api-key", apiKey)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return err
+		        return errors.New(fmt.Sprintf("response error: %v", err))
 		}
+
+		defer resp.Body.Close()
 
 		var res map[string]interface{}
 		json.NewDecoder(resp.Body).Decode(&res)
