@@ -3,6 +3,7 @@ package firetail
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/FireTail-io/firetail-go-lib/logging"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -32,6 +33,14 @@ type Options struct {
 	// default callback sends log entries to the Firetail logging API. It may be customised to, for example, additionally log the entries
 	// to a file on disk
 	LogBatchCallback func([][]byte)
+
+	// MaxBatchSize is the maximum size of a logging batch in bytes which will be passed to the LogBatchCallback, or the default callback
+	// if it is used.
+	MaxBatchSize int
+
+	// MaxLogAge is the maximum age of the oldest log in a batch which will be passed to the LogBatchCallback, or the default callback if
+	// it is used.
+	MaxLogAge time.Duration
 
 	// ErrCallback is an optional callback func which is given an error and a ResponseWriter to which an apropriate response can be written
 	// for the error. This allows you customise the responses given, when for example a request or response fails to validate against the

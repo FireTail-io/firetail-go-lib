@@ -7,10 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
 
 	_ "embed"
 
+	"github.com/FireTail-io/firetail-go-lib/logging"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/sbabiv/xml2map"
@@ -88,7 +91,21 @@ func TestValidRequestAndResponse(t *testing.T) {
 }
 
 func TestNoSpec(t *testing.T) {
-	middleware, err := GetMiddleware(&Options{})
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	middleware, err := GetMiddleware(
+		&Options{
+			MaxLogAge: time.Nanosecond,
+			LogBatchCallback: func(logs [][]byte) {
+				require.Equal(t, 1, len(logs))
+				logEntry, err := logging.UnmarshalLogEntry(logs[0])
+				require.Nil(t, err)
+				assert.Equal(t, logEntry.Request.Resource, "/implemented/1")
+				assert.Equal(t, logEntry.Request.URI, "http://example.com/implemented/1")
+				wg.Done()
+			},
+		},
+	)
 	require.Nil(t, err)
 	handler := middleware(healthHandler)
 	responseRecorder := httptest.NewRecorder()
@@ -111,6 +128,9 @@ func TestNoSpec(t *testing.T) {
 	respBody, err := io.ReadAll(responseRecorder.Body)
 	require.Nil(t, err)
 	assert.Equal(t, "{\"description\":\"test description\"}", string(respBody))
+
+	// Wait for the log callback to have been called & run its assertions
+	wg.Wait()
 }
 
 func TestInvalidSpecPath(t *testing.T) {
