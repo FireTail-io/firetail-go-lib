@@ -101,7 +101,7 @@ func TestNoSpec(t *testing.T) {
 				logEntry, err := logging.UnmarshalLogEntry(logs[0])
 				require.Nil(t, err)
 				assert.Equal(t, logEntry.Request.Resource, "/implemented/1")
-				assert.Equal(t, logEntry.Request.URI, "http://example.com/implemented/1")
+				assert.Equal(t, logEntry.Request.URI, "http://example.com/implemented/1?testparam=1")
 				wg.Done()
 			},
 		},
@@ -111,7 +111,7 @@ func TestNoSpec(t *testing.T) {
 	responseRecorder := httptest.NewRecorder()
 
 	request := httptest.NewRequest(
-		"POST", "/implemented/1",
+		"POST", "/implemented/1?testparam=1",
 		io.NopCloser(bytes.NewBuffer([]byte("{\"description\":\"test description\"}"))),
 	)
 	request.Header.Add("Content-Type", "application/json")
