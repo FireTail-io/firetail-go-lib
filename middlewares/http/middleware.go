@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -53,6 +54,10 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 	middleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Create a LogEntry populated with everything we know right now
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				ip = strings.TrimSuffix(strings.TrimPrefix(r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")], "["), "]")
+			}
 			logEntry := logging.LogEntry{
 				Version:     logging.The100Alpha,
 				DateCreated: time.Now().UnixMilli(),
@@ -60,7 +65,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 					HTTPProtocol: logging.HTTPProtocol(r.Proto),
 					Headers:      r.Header,
 					Method:       logging.Method(r.Method),
-					IP:           strings.Split(r.RemoteAddr, ":")[0],
+					IP:           ip,
 					Resource:     r.URL.Path, // We'll fill this in later if we have a router
 				},
 			}
