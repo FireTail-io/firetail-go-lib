@@ -60,7 +60,7 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 					HTTPProtocol: logging.HTTPProtocol(r.Proto),
 					Headers:      r.Header,
 					Method:       logging.Method(r.Method),
-					IP:           strings.Split(r.RemoteAddr, ":")[0],
+					IP:           strings.TrimSuffix(strings.TrimPrefix(r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")], "["), "]"),
 					Resource:     r.URL.Path, // We'll fill this in later if we have a router
 				},
 			}
