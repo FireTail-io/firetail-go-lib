@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -52,6 +53,9 @@ func getDefaultBatchCallback(options BatchLoggerOptions) func([][]byte) {
 			if err == nil || retries >= 3 {
 				break
 			}
+		}
+		if err != nil {
+			log.Println("Error sending logs to Firetail API: ", err)
 		}
 	}
 }
