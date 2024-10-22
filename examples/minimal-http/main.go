@@ -36,5 +36,9 @@ func main() {
 	healthHandler := firetailMiddleware(http.HandlerFunc(health))
 	http.Handle("/health", healthHandler)
 
+	// If you want the FireTail middleware to catch all requests, you need to register a 404 handler and wrap it. If you
+	// don't have a 404 handler, you can use http.NotFoundHandler() from the stdlib
+	http.Handle("/", firetailMiddleware(http.NotFoundHandler()))
+
 	http.ListenAndServe(":8080", nil)
 }
