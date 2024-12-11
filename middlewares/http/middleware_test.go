@@ -182,6 +182,32 @@ func TestRequestToInvalidRoute(t *testing.T) {
 	assert.Equal(t, "{\"code\":404,\"title\":\"the resource \\\"/not-implemented\\\" could not be found\",\"detail\":\"a path for \\\"/not-implemented\\\" could not be found in your appspec\"}", string(respBody))
 }
 
+func TestRequestToInvalidRouteWithAllowUndefinedRoutesEnabled(t *testing.T) {
+	middleware, err := GetMiddleware(&Options{
+		OpenapiSpecPath:         "./test-spec.yaml",
+		DebugErrs:               true,
+		EnableRequestValidation: true,
+		AllowUndefinedRoutes:    true,
+	})
+	require.Nil(t, err)
+	handler := middleware(healthHandler)
+	responseRecorder := httptest.NewRecorder()
+
+	request := httptest.NewRequest("GET", "/not-implemented", nil)
+	handler.ServeHTTP(responseRecorder, request)
+
+	assert.Equal(t, 200, responseRecorder.Code)
+
+	require.Contains(t, responseRecorder.HeaderMap, "Content-Type")
+	require.GreaterOrEqual(t, len(responseRecorder.HeaderMap["Content-Type"]), 1)
+	assert.Len(t, responseRecorder.HeaderMap["Content-Type"], 1)
+	assert.Equal(t, "application/json", responseRecorder.HeaderMap["Content-Type"][0])
+
+	respBody, err := io.ReadAll(responseRecorder.Body)
+	require.Nil(t, err)
+	assert.Equal(t, "{\"description\":\"test description\"}", string(respBody))
+}
+
 func TestDebugErrsDisabled(t *testing.T) {
 	middleware, err := GetMiddleware(&Options{
 		OpenapiSpecPath:         "./test-spec.yaml",
