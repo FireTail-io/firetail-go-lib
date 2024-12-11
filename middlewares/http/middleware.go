@@ -111,7 +111,10 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 			var pathParams map[string]string
 			if router != nil && (options.EnableRequestValidation || options.EnableResponseValidation) {
 				route, pathParams, err = router.FindRoute(r)
-				if err == routers.ErrMethodNotAllowed {
+				if options.AllowUndefinedRoutes && err == routers.ErrPathNotFound {
+					// If the router couldn't find the path & undefined routes are allowed, fallback to using the request path as the resource
+					logEntry.Request.Resource = r.URL.Path
+				} else if err == routers.ErrMethodNotAllowed {
 					options.ErrCallback(ErrorUnsupportedMethod{r.URL.Path, r.Method}, localResponseWriter, r)
 					return
 				} else if err == routers.ErrPathNotFound {
@@ -120,9 +123,10 @@ func GetMiddleware(options *Options) (func(next http.Handler) http.Handler, erro
 				} else if err != nil {
 					options.ErrCallback(ErrorAtRequestUnspecified{err}, localResponseWriter, r)
 					return
+				} else {
+					// We now know the resource that was requested, so we can fill it into our log entry
+					logEntry.Request.Resource = route.Path
 				}
-				// We now know the resource that was requested, so we can fill it into our log entry
-				logEntry.Request.Resource = route.Path
 			}
 
 			// If it has been enabled, and we were able to determine the route and path params, validate the request against the openapi spec
