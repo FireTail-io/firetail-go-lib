@@ -64,6 +64,11 @@ type Options struct {
 	// if no openapi spec is provided, then no validation will be performed
 	EnableResponseValidation bool
 
+	// AllowUndefinedRoutes is an optional flag which, if set to true, allows requests to routes which are not defined in the openapi spec
+	// to pass through the middleware without validation. If set to false (default), requests to undefined routes will be rejected and a
+	// 404 response will be returned
+	AllowUndefinedRoutes bool
+
 	// CustomBodyDecoders is a map of Content-Type header values to openapi3 decoders - if the kin-openapi module does not support your
 	// Content-Type by default, you will need to add a custom decoder here
 	CustomBodyDecoders map[string]openapi3filter.BodyDecoder
